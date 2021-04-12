@@ -231,9 +231,15 @@ namespace Microsoft.Quantum.Arrays {
             return ();
         } else {
             let numColumns = Length(Head(array));
-            if (Any(Compose(NotEqualI(numColumns, _), Length<'T>), Rest(array))) {
-                fail message;
+            for i in IndexRange(Rest(array)) {
+                if Length(array[i+1]) != numColumns {
+                    fail message;
+                }
             }
+            // BUG(qsharp-compiler <IssueNumber>): PUT IN LINK TO COMPILER ISSUE
+            // if (Any(Compose(NotEqualI(numColumns, _), Length<'T>), Rest(array))) {
+            //     fail message;
+            // }
         }
     }
 
@@ -268,9 +274,15 @@ namespace Microsoft.Quantum.Arrays {
             return ();
         } else {
             let numColumns = Length(array);
-            if (Any(Compose(NotEqualI(numColumns, _), Length<'T>), array)) {
-                fail message;
+            for i in IndexRange(Rest(array)) {
+                if Length(array[i+1]) != numColumns {
+                    fail message;
+                }
             }
+            // BUG(qsharp-compiler <IssueNumber>): PUT IN LINK TO COMPILER ISSUE
+            // if (Any(Compose(NotEqualI(numColumns, _), Length<'T>), array)) {
+            //     fail message;
+            // }
         }
     }
 }
