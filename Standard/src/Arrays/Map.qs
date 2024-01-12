@@ -28,14 +28,20 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Output
     /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.ForEach
     function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
-        mutable resultArray = new 'U[Length(array)];
-
-        for idxElement in IndexRange(array) {
-            set resultArray w/= idxElement <- mapper(array[idxElement]);
+        let length = Length(array);
+        if length == 0 {
+            return [];
         }
-
-        return resultArray;
+        let first = mapper(array[0]);
+        mutable retval = [first, size = length];
+        for idx in 1..length - 1 {
+            set retval w/= idx <- mapper(array[idx]);
+        }
+        return retval;
     }
 
     /// # Summary
@@ -64,8 +70,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array `'U[]` of elements that are mapped by the `mapper` function.
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// The following two lines are equivalent:
     /// ```qsharp
     /// let arr = MapIndex(f, [x0, x1, x2]);
@@ -78,13 +83,16 @@ namespace Microsoft.Quantum.Arrays {
     /// # See Also
     /// - Microsoft.Quantum.Arrays.Mapped
     function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
-        mutable resultArray = new 'U[Length(array)];
-
-        for idxElement in IndexRange(array) {
-            set resultArray w/= idxElement <- mapper(idxElement, array[idxElement]);
+        let length = Length(array);
+        if length == 0 {
+            return [];
         }
-
-        return resultArray;
+        let first = mapper(0, array[0]);
+        mutable retval = [first, size = length];
+        for idx in 1..length - 1 {
+            set retval w/= idx <- mapper(idx, array[idx]);
+        }
+        return retval;
     }
 
     /// # Summary
@@ -125,15 +133,18 @@ namespace Microsoft.Quantum.Arrays {
         let end = RangeEnd(range);
         if ((end - start) / step >= 0) {
             let nTerms = (end - start) / step + 1;
-            mutable resultArray = new 'T[nTerms];
+            let first = mapper(start);
+            mutable resultArray = [first, size = nTerms];
             mutable idxElement = 0;
             for elem in range {
-                set resultArray w/= idxElement <- mapper(elem);
+                if idxElement != 0 {
+                    set resultArray w/= idxElement <- mapper(elem);
+                }
                 set idxElement += 1;
             }
             return resultArray;
         } else {
-            return new 'T[0];
+            return [];
         }
     }
 
@@ -164,7 +175,7 @@ namespace Microsoft.Quantum.Arrays {
     /// // values = [1, 1, 2, 1, 2, 3]
     /// ```
     function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[] {
-        return Fold(PlusA<'TOutput>, new 'TOutput[0], Mapped(mapper, array));
+        return Fold(PlusA<'TOutput>, [], Mapped(mapper, array));
     }
 
     /// # Summary
@@ -187,7 +198,7 @@ namespace Microsoft.Quantum.Arrays {
     /// // flattened = [1, 2, 3, 4, 5, 6]
     /// ```
     function Flattened<'T>(arrays : 'T[][]): 'T[] {
-        return Fold(PlusA<'T>, new 'T[0], arrays);
+        return Fold(PlusA<'T>, [], arrays);
     }
 
     /// # Summary
@@ -214,14 +225,20 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Output
     /// An array `'U[]` of elements that are mapped by the `action` operation.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
     operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
-        mutable resultArray = new 'U[Length(array)];
-
-        for idxElement in IndexRange(array) {
-            set resultArray w/= idxElement <- action(array[idxElement]);
+        let length = Length(array);
+        if length == 0 {
+            return [];
         }
-
-        return resultArray;
+        let first = action(array[0]);
+        mutable retval = [first, size = length];
+        for idx in 1..length - 1 {
+            set retval w/= idx <- action(array[idx]);
+        }
+        return retval;
     }
 
 }

@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.Chemistry.Magic
             /// A Broombridge ProblemDescription to load the FermionHamiltonian from.
             /// </summary>
             [JsonProperty(PropertyName = "problem_description")]
-            public V0_2.ProblemDescription ProblemDescription { get; set; }
+            public V0_3.ProblemDescription ProblemDescription { get; set; }
 
             /// <summary>
             /// The IndexConvention to use to generate the Hamiltonian from the ProblemDescription.
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Chemistry.Magic
             public IndexConvention IndexConvention { get; set; } = IndexConvention.UpDown;
 
             /// <summary>
-            /// The label of the wavefunctio within the ProblemDescription to use.
+            /// The label of the wavefunction within the ProblemDescription to use.
             /// If no label specified, it will return the Hartree-Fock state.
             /// </summary>
             [JsonProperty(PropertyName = "wavefunction_label")]

@@ -51,6 +51,15 @@ namespace Microsoft.Quantum.Preparation {
     /// elements $(r_j, t_j) = (0.0, 0.0)$ if fewer than $2^n$ are
     /// specified.
     ///
+    /// # Example
+    /// The following snippet prepares the quantum state $\ket{\psi}=\sqrt{1/8}\ket{0}+\sqrt{7/8}\ket{2}$
+    /// in the qubit register `qubitsLE`.
+    /// ```qsharp
+    /// use qubits = Qubit();
+    /// let qubitsLE = LittleEndian([qubits]);
+    /// PrepareArbitraryStateCP([ComplexPolar(1.0/Sqrt(2.0),0.0),ComplexPolar(1.0/Sqrt(2.0),PI()/2.0)],qubitsLE); // = |i>
+    /// ```
+    ///
     /// # References
     /// - Synthesis of Quantum Logic Circuits
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
@@ -93,12 +102,11 @@ namespace Microsoft.Quantum.Preparation {
     /// positive with value $|\alpha_j|$. `coefficients` will be padded with
     /// elements $\alpha_j = 0.0$ if fewer than $2^n$ are specified.
     ///
-    /// ## Example
+    /// # Example
     /// The following snippet prepares the quantum state $\ket{\psi}=\sqrt{1/8}\ket{0}+\sqrt{7/8}\ket{2}$
     /// in the qubit register `qubitsLE`.
     /// ```qsharp
     /// let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
-    /// let op = StatePreparationPositiveCoefficients(amplitudes);
     /// use qubits = Qubit[2];
     /// let qubitsLE = LittleEndian(qubits);
     /// PrepareArbitraryStateD(amplitudes, qubitsLE);
@@ -308,7 +316,7 @@ namespace Microsoft.Quantum.Preparation {
         (rngControl : Range, idxTarget : Int)
     )
     : (Qubit[] => Unit is Adj + Ctl)[] {
-        mutable plan = new (Qubit[] => Unit is Adj + Ctl)[0];
+        mutable plan = [];
 
         // For each 2D block, compute disentangling single-qubit rotation parameters
         let (disentanglingY, disentanglingZ, newCoefficients) = StatePreparationSBMComputeCoefficients(coefficients);
@@ -369,9 +377,9 @@ namespace Microsoft.Quantum.Preparation {
     /// # See Also
     /// - Microsoft.Quantum.Preparation.PrepareArbitraryState
     internal function StatePreparationSBMComputeCoefficients(coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
-        mutable disentanglingZ = new Double[Length(coefficients) / 2];
-        mutable disentanglingY = new Double[Length(coefficients) / 2];
-        mutable newCoefficients = new ComplexPolar[Length(coefficients) / 2];
+        mutable disentanglingZ = [0.0, size = Length(coefficients) / 2];
+        mutable disentanglingY = [0.0, size = Length(coefficients) / 2];
+        mutable newCoefficients = [ComplexPolar(0.0, 0.0), size = Length(coefficients) / 2];
 
         for idxCoeff in 0 .. 2 .. Length(coefficients) - 1 {
             let (rt, phi, theta) = BlochSphereCoordinates(coefficients[idxCoeff], coefficients[idxCoeff + 1]);

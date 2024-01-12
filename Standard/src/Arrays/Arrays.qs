@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[1..Length(array) - 1]`.
     function Rest<'T> (array : 'T[]) : 'T[] {
-        return array[1 .. Length(array) - 1];
+        return array[1 ...];
     }
 
     /// # Summary
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[0..Length(array) - 2]`.
     function Most<'T> (array : 'T[]) : 'T[] {
-        return array[0 .. Length(array) - 2];
+        return array[... Length(array) - 2];
     }
 
     /// # Summary
@@ -177,13 +177,7 @@ namespace Microsoft.Quantum.Arrays {
     /// let array = ConstantArray(3, true);
     /// ```
     function ConstantArray<'T> (length : Int, value : 'T) : 'T[] {
-        mutable arr = new 'T[length];
-
-        for i in 0 .. length - 1 {
-            set arr w/= i <- value;
-        }
-
-        return arr;
+        return [value, size = length];
     }
 
     /// # Summary
@@ -207,8 +201,7 @@ namespace Microsoft.Quantum.Arrays {
     /// such that `output[1]` is the second such element, and so
     /// forth.
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// let array = [10, 11, 12, 13, 14, 15];
     /// // The following line returns [10, 12, 15].
@@ -218,23 +211,23 @@ namespace Microsoft.Quantum.Arrays {
         let nSliced = Length(remove);
         let nElements = Length(array);
 
+        if nElements - nSliced <= 0 {
+            return [];
+        }
+
         //Would be better with sort function
         //Or way to add elements to array
-        mutable arrayKeep = new Int[nElements];
-        mutable sliced = new 'T[nElements - nSliced];
+        mutable arrayKeep = SequenceI(0, nElements - 1);
+        mutable sliced = [array[0], size = nElements - nSliced];
         mutable counter = 0;
 
-        for idx in 0 .. nElements - 1 {
-            set arrayKeep w/= idx <- idx;
+        for idx in remove {
+            set arrayKeep w/= idx <- -1;
         }
 
-        for idx in 0 .. nSliced - 1 {
-            set arrayKeep w/= remove[idx] <- -1;
-        }
-
-        for idx in 0 .. nElements - 1 {
-            if (arrayKeep[idx] >= 0) {
-                set sliced w/= counter <- array[arrayKeep[idx]];
+        for idx in arrayKeep {
+            if idx >= 0 {
+                set sliced w/= counter <- array[idx];
                 set counter += 1;
             }
         }
@@ -264,14 +257,13 @@ namespace Microsoft.Quantum.Arrays {
     /// An array `output` that is the `inputArray` padded at the head
     /// with `defaultElement`s until `output` has length `nElementsTotal`
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// let array = [10, 11, 12];
     /// // The following line returns [10, 12, 15, 2, 2, 2].
-    /// let output = Padded(-6, array, 2);
+    /// let output = Padded(-6, 2, array);
     /// // The following line returns [2, 2, 2, 10, 12, 15].
-    /// let output = Padded(6, array, 2);
+    /// let output = Padded(6, 2, array);
     /// ```
     function Padded<'T> (nElementsTotal : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
         let nElementsInitial = Length(inputArray);
@@ -291,7 +283,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## nElements
-    /// The length of each chunk.
+    /// The length of each chunk. Must be positive.
     /// ## arr
     /// The array to be split.
     ///
@@ -302,7 +294,8 @@ namespace Microsoft.Quantum.Arrays {
     /// Note that the last element of the output may be shorter
     /// than `nElements` if `Length(arr)` is not divisible by `nElements`.
     function Chunks<'T>(nElements : Int, arr : 'T[]) : 'T[][] {
-        mutable output = new 'T[][0];
+        Fact(nElements > 0, "nElements must be positive");
+        mutable output = [];
         mutable remaining = arr;
         while (not IsEmpty(remaining)) {
             let nElementsToTake = MinI(Length(remaining), nElements);
@@ -324,25 +317,30 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// Multiple arrays where the first array is the first `nElements[0]` of `arr`
     /// and the second array are the next `nElements[1]` of `arr` etc. The last array
-    /// will contain all remaining elements.
+    /// will contain all remaining elements. If the array is split exactly, the
+    /// last array will be the empty array, indicating there are no remaining elements.
+    /// In other words, `Tail(Partitioned(...))` will always return the remaining
+    /// elements, while `Most(Partitioned(...))` will always return the complete
+    /// partitions of the array.
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// // The following returns [[1, 5], [3], [7]];
     /// let split = Partitioned([2,1], [1,5,3,7]);
+    /// // The following returns [[1, 5], [3, 7], []];
+    /// let split = Partitioned([2,2], [1,5,3,7]);
     /// ```
     function Partitioned<'T>(nElements: Int[], arr: 'T[]) : 'T[][] {
-        mutable output = new 'T[][Length(nElements) + 1];
+        mutable output = [[], size = Length(nElements) + 1];
         mutable currIdx = 0;
         for idx in IndexRange(nElements) {
-            if(currIdx + nElements[idx] > Length(arr)) {
+            if currIdx + nElements[idx] > Length(arr) {
                 fail "Partitioned argument out of bounds.";
             }
-            set output w/= idx <- arr[currIdx..currIdx + nElements[idx]-1];
+            set output w/= idx <- arr[currIdx..currIdx + nElements[idx] - 1];
             set currIdx = currIdx + nElements[idx];
         }
-        set output w/= Length(nElements) <- arr[currIdx..Length(arr)-1];
+        set output w/= Length(nElements) <- arr[currIdx..Length(arr) - 1];
         return output;
     }
 
@@ -373,10 +371,10 @@ namespace Microsoft.Quantum.Arrays {
     /// that `array` can be interpreted as a permutation on `n` elements.
     ///
     /// # Input
-    /// ## permuation
+    /// ## permutation
     /// An array that may or may not represent a permutation.
     ///
-    /// # Ouput
+    /// # Output
     /// `true` if and only if the array is a permutation.
     ///
     /// # Remarks
@@ -390,12 +388,12 @@ namespace Microsoft.Quantum.Arrays {
     /// Contradiction(IsPermutation([5, 0, 1], "[5, 0, 1] isn't a permutation");
     /// Message("All diagnostics completed successfully.");
     /// ```
-    function IsPermutation(permuation : Int[]) : Bool {
-        return All(IsValuePresent(permuation, _), RangeAsIntArray(IndexRange(permuation)));
+    function IsPermutation(permutation : Int[]) : Bool {
+        return All(IsValuePresent(permutation, _), RangeAsIntArray(IndexRange(permutation)));
     }
 
     // NB: This function is internal, but not marked as internal so as to allow
-    //     unit tests to check its behaviour. In the future, tests should be
+    //     unit tests to check its behavior. In the future, tests should be
     //     redesigned to check only publicly accessible behavior.
     /// # Summary
     /// Returns the order elements in an array need to be swapped to produce an ordered array.
@@ -409,19 +407,21 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The tuple represents the two indices to be swapped. The swaps begin at the lowest index.
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// // The following returns [(0, 5),(0, 4),(0, 1),(0, 3)];
     /// let swapOrder = _SwapOrderToPermuteArray([5, 3, 2, 0, 1, 4]);
     /// ```
     ///
-    /// ## Psuedocode
+    /// # Remarks
+    /// ## Pseudocode
+    /// ```
     /// for index in 0..Length(newOrder) - 1 {
     ///     while newOrder[index] != index {
     ///         Switch newOrder[index] with newOrder[newOrder[index]]
     ///     }
     /// }
+    /// ```
     function _SwapOrderToPermuteArray(newOrder : Int[]) : (Int, Int)[] {
         // Check to verify the new ordering actually is a permutation of the indices
         Fact(IsPermutation(newOrder), $"The new ordering is not a permutation");
@@ -456,11 +456,14 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The array with the in place swap applied.
     ///
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// // The following returns [0, 3, 2, 1, 4]
     /// Swapped(1, 3, [0, 1, 2, 3, 4]);
+    /// ```
     function Swapped<'T>(firstIndex : Int, secondIndex : Int, arr : 'T[]) : 'T[] {
+        Fact(firstIndex >= 0 and firstIndex < Length(arr), "First index is out of bounds");
+        Fact(secondIndex >= 0 and secondIndex < Length(arr), "Second index is out of bounds");
         return arr
             w/ firstIndex <- arr[secondIndex]
             w/ secondIndex <- arr[firstIndex];
@@ -476,13 +479,13 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// A nested array with length matching the tupleList.
     ///
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// // The following returns [[2, 3], [4, 5]]
     /// TupleArrayAsNestedArray([(2, 3), (4, 5)]);
     /// ```
     function TupleArrayAsNestedArray<'T>(tupleList : ('T, 'T)[]) : 'T[][] {
-        mutable newArray = new 'T[][Length(tupleList)];
+        mutable newArray = [[], size = Length(tupleList)];
         for idx in IndexRange(tupleList) {
             let (tupleLeft, tupleRight) = tupleList[idx];
             set newArray w/= idx <- [tupleLeft, tupleRight];

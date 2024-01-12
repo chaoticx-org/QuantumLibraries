@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.MachineLearning {
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.MachineLearning {
     /// # Output
     /// An array of elements from values, following the given schedule.
     function Sampled<'T>(schedule : SamplingSchedule, values : 'T[]) : 'T[] {
-        mutable sampled = new 'T[0];
+        mutable sampled = [];
         for range in schedule! {
             for index in range {
                 set sampled += [values[index]];
@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.MachineLearning {
     ///
     /// # Remarks
     /// This UDT should not be created directly, but rather should be specified
-    /// by calling @"microsoft.quantum.machinelearning.defaulttrainingoptions"
+    /// by calling @"Microsoft.Quantum.MachineLearning.DefaultTrainingOptions"
     /// and then using the `w/` operator to override different defaults.
     ///
     /// For example, to use 100,000 measurements and at most 8 training

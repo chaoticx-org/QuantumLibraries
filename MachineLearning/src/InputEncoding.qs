@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.MachineLearning {
@@ -10,11 +10,11 @@ namespace Microsoft.Quantum.MachineLearning {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
 
-    function _CanApplyTwoQubitCase(datum: Double[]) : Bool {
-        return((Length(datum)==4) and (Microsoft.Quantum.Math.AbsD(datum[0]*datum[3]-datum[1]*datum[2])< 1E-12) and (Microsoft.Quantum.Math.AbsD(datum[0])> 1E-4));
+    internal function CanApplyTwoQubitCase(datum: Double[]) : Bool {
+        return ((Length(datum)==4) and (Microsoft.Quantum.Math.AbsD(datum[0]*datum[3]-datum[1]*datum[2])< 1E-12) and (Microsoft.Quantum.Math.AbsD(datum[0])> 1E-4));
     }
 
-    operation _ApplyTwoQubitCase(datum: Double[], reg: LittleEndian) : Unit is Adj + Ctl {
+    internal operation ApplyTwoQubitCase(datum: Double[], reg: LittleEndian) : Unit is Adj + Ctl {
         let x = datum[1]/datum[0];
         let y = datum[2]/datum[0];
         // we now encoding [1,x,y,x*y]
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.MachineLearning {
         R(PauliY, ax, (reg!)[0]);
     }
 
-    function _Unnegate(negLocs: Int[], coefficients : ComplexPolar[]) : ComplexPolar[] {
+    internal function Unnegate(negLocs: Int[], coefficients : ComplexPolar[]) : ComplexPolar[] {
         mutable ret = coefficients;
         for idxNegative in negLocs {
             if idxNegative >= Length(coefficients) {
@@ -36,10 +36,10 @@ namespace Microsoft.Quantum.MachineLearning {
         return ret;
     }
 
-    function _NegativeLocations(cNegative: Int, coefficients : ComplexPolar[]) : Int[] {
-        mutable negLocs = new Int[0];
+    internal function NegativeLocations(cNegative: Int, coefficients : ComplexPolar[]) : Int[] {
+        mutable negLocs = [];
         for (idx, coefficient) in Enumerated(coefficients) {
-            if (AbsD(coefficient::Argument - PI()) < 1E-9) {
+            if AbsD(coefficient::Argument - PI()) < 1E-9 {
                 set negLocs += [idx];
             }
         }
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.MachineLearning {
     }
 
     /// Do special processing on the first cNegative entries
-    operation _ReflectAboutNegativeCoefficients(
+    internal operation ReflectAboutNegativeCoefficients(
         negLocs : Int[],
         coefficients : ComplexPolar[],
         reg: LittleEndian
@@ -92,15 +92,15 @@ namespace Microsoft.Quantum.MachineLearning {
     : StateGenerator {
         //First quantize the coefficients: for a coef x find such y*tolerance, where y is integer and |x-y*tolerance| \neq tolerance/2
         let nCoefficients = Length(coefficients);
-        mutable complexCoefficients = new ComplexPolar[Length(coefficients)];
+        mutable complexCoefficients = [ComplexPolar(0., 0.), size = Length(coefficients)];
         mutable cNegative = 0;
         for (idx, coef) in Enumerated(coefficients) {
             mutable magnitude = coef;
-            if (tolerance > 1E-9) {
+            if tolerance > 1E-9 {
                 set magnitude = tolerance * IntAsDouble(Round(coefficients[idx] / tolerance)); //quantization
             }
             mutable ang = 0.0;
-            if (magnitude < 0.0) {
+            if magnitude < 0.0 {
                 set cNegative += 1;
                 set magnitude = -magnitude;
                 set ang = PI();
@@ -109,8 +109,8 @@ namespace Microsoft.Quantum.MachineLearning {
         }
 
         // Check if we can apply the explicit two-qubit case.
-        if (_CanApplyTwoQubitCase(coefficients)) {
-            return StateGenerator(2, _ApplyTwoQubitCase(coefficients, _));
+        if CanApplyTwoQubitCase(coefficients) {
+            return StateGenerator(2, ApplyTwoQubitCase(coefficients, _));
         }
 
         let nQubits = FeatureRegisterSize(coefficients);
@@ -119,18 +119,18 @@ namespace Microsoft.Quantum.MachineLearning {
         // there are only a few negative coefficients.
         // Here, by a "few," we mean fewer than the number of qubits required
         // to encode features.
-        if ((cNegative > 0) and (IntAsDouble(cNegative) < Lg(IntAsDouble(Length(coefficients))) + 1.0)) {
-            let negLocs = _NegativeLocations(cNegative, complexCoefficients);
+        if (cNegative > 0) and (IntAsDouble(cNegative) < Lg(IntAsDouble(Length(coefficients))) + 1.0) {
+            let negLocs = NegativeLocations(cNegative, complexCoefficients);
             return StateGenerator(
                 nQubits,
                 BoundCA([
                     // Prepare the state disregarding the sign of negative components.
                     _CompileApproximateArbitraryStatePreparation(
-                        tolerance, _Unnegate(negLocs, complexCoefficients), nQubits
+                        tolerance, Unnegate(negLocs, complexCoefficients), nQubits
                     ),
                     // Reflect about the negative coefficients to apply the negative signs
                     // at the end.
-                    _ReflectAboutNegativeCoefficients(negLocs, complexCoefficients, _)
+                    ReflectAboutNegativeCoefficients(negLocs, complexCoefficients, _)
                 ])
             );
         }
@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.MachineLearning {
     function InputEncoder(coefficients : Double[])
     : StateGenerator {
         //default implementation, does not respect sparsity
-        mutable complexCoefficients = new ComplexPolar[Length(coefficients)];
+        mutable complexCoefficients = [ComplexPolar(0., 0.), size = Length(coefficients)];
         for (idx, coefficient) in Enumerated(coefficients) {
             set complexCoefficients w/= idx <- ComplexPolar(
                 coefficient >= 0.0
@@ -165,8 +165,8 @@ namespace Microsoft.Quantum.MachineLearning {
                 | (-coefficient, PI())
             );
         }
-        if (_CanApplyTwoQubitCase(coefficients)) {
-            return StateGenerator(2, _ApplyTwoQubitCase(coefficients, _));
+        if CanApplyTwoQubitCase(coefficients) {
+            return StateGenerator(2, ApplyTwoQubitCase(coefficients, _));
         }
         //this is preparing the state almost exactly so far
         return StateGenerator(

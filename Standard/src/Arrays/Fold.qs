@@ -5,7 +5,7 @@ namespace Microsoft.Quantum.Arrays {
 
     /// # Summary
     /// Iterates a function `f` through an array `array`, returning
-    /// `f(f(f(initialState, array[0]), array[1]), ...)`.
+    /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
     ///
     /// # Type Parameters
     /// ## 'State
@@ -26,12 +26,11 @@ namespace Microsoft.Quantum.Arrays {
     /// The final state returned by the folder after iterating over
     /// all elements of `array`.
     ///
-    /// # Remarks
-    /// ## Example
+    /// # Example
     /// ```qsharp
     /// function Plus(a : Double, b : Double) {
-	///     return a + b;
-	/// }
+    ///     return a + b;
+    /// }
     /// function Sum(xs : Double[]) {
     ///     return Fold(Plus, 0.0, xs);
     /// }

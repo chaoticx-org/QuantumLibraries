@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Description
     /// This function iterates the `fn` function through the array, starting from
     /// an initial state `state` and returns all intermediate values, not including
-    /// the inital state.
+    /// the initial state.
     ///
     /// # Type Parameters
     /// ## 'State
@@ -43,7 +43,8 @@ namespace Microsoft.Quantum.Arrays {
     /// ```
     function CumulativeFolded<'State, 'T>(fn : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State[] {
         mutable current = state;
-        mutable result = new 'State[Length(array)];
+        // initialize with current, and then overwrite in loop
+        mutable result = [current, size = Length(array)];
 
         for (i, elem) in Enumerated(array) {
             set current = fn(current, elem);

@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.Math {
     /// The `minValue` input then effectively specifies where to cut the
     /// unit circle.
     ///
-    /// ## Example
+    /// # Example
     /// ```qsharp
     ///     // Returns 3 π / 2.
     ///     let y = RealMod(5.5 * PI(), 2.0 * PI(), 0.0);
@@ -203,6 +203,12 @@ namespace Microsoft.Quantum.Math {
         Fact(power >= 0, $"`power` must be non-negative");
         Fact(modulus > 0, $"`modulus` must be positive");
         Fact(expBase > 0, $"`expBase` must be positive");
+
+        // shortcut when modulus is 1
+        if modulus == 1 {
+            return 0;
+        }
+
         mutable res = 1;
         mutable expPow2mod = expBase;
 
@@ -558,7 +564,7 @@ namespace Microsoft.Quantum.Math {
     /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
     ///
     /// # Remarks
-    /// This function returns returns the smallest $n$ such that $a < 2^n$.
+    /// This function returns the smallest $n$ such that $a < 2^n$.
     ///
     /// # Input
     /// ## a
@@ -568,7 +574,7 @@ namespace Microsoft.Quantum.Math {
     /// The bit-size of `a`.
     function BitSizeI(a : Int) : Int {
         Fact(a >= 0, $"`a` must be non-negative");
-        return AccumulatedBitsizeI(a, 0);
+        return a == 0 ? 1 | AccumulatedBitsizeI(a, 0);
     }
 
 
@@ -576,7 +582,7 @@ namespace Microsoft.Quantum.Math {
     /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
     ///
     /// # Remarks
-    /// This function returns returns the smallest $n$ such that $a < 2^n$.
+    /// This function returns the smallest $n$ such that $a < 2^n$.
     ///
     /// # Input
     /// ## a
@@ -586,6 +592,9 @@ namespace Microsoft.Quantum.Math {
     /// The bit-size of `a`.
     function BitSizeL(a : BigInt) : Int {
         Fact(a >= 0L, $"`a` must be non-negative");
+        if a == 0L {
+            return 1;
+        }
         mutable bitsize = 0;
         mutable val = a;
         while val != 0L {
@@ -597,27 +606,37 @@ namespace Microsoft.Quantum.Math {
 
 
     /// # Summary
-    /// Returns the `L(p)` norm of a vector of `Double`s.
+    /// Returns the p-norm of a vector of real numbers.
     ///
     /// # Description
-    /// Given an array $x$ of type `Double[]`, this returns the $p$-norm
+    /// Given an array $x$, this returns the $p$-norm
     /// $\|x\|\_p= (\sum_{j}|x_j|^{p})^{1/p}$.
     ///
     /// # Input
     /// ## p
-    /// The exponent $p$ in the $p$-norm.
+    /// A positive number representing the exponent $p$ in the $p$-norm.
+    /// ## array
+    /// The vector $x$ of real numbers whose $p$-norm is to be returned.
     ///
     /// # Output
     /// The $p$-norm $\|x\|_p$.
-    function PNorm (p : Double, array : Double[]) : Double {
-        if p < 1.0 {
-            fail $"PNorm failed. `p` must be >= 1.0";
+    ///
+    /// # Remarks
+    /// This function defines a norm only when `p >= 1.0` or `Length(array)` is
+    /// either 0 or 1. In the more general case, this function fails the
+    /// triangle inequality.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Math.PNormalized
+    function PNorm(p : Double, array : Double[]) : Double {
+        if p <= 0.0 {
+            fail $"PNorm failed. `p` must be a positive real number, but was {p}.";
         }
 
         mutable norm = 0.0;
 
         for element in array {
-            set norm = norm + PowD(AbsD(element), p);
+            set norm += PowD(AbsD(element), p);
         }
 
         return PowD(norm, 1.0 / p);
@@ -647,7 +666,8 @@ namespace Microsoft.Quantum.Math {
 
 
     /// # Summary
-    /// Normalizes a vector of `Double`s in the `L(p)` norm.
+    /// Normalizes a vector of real numbers according to the p-norm for a given
+    /// p.
     ///
     /// # Description
     /// That is, given an array $x$ of type `Double[]`, this returns an array where
@@ -656,9 +676,16 @@ namespace Microsoft.Quantum.Math {
     /// # Input
     /// ## p
     /// The exponent $p$ in the $p$-norm.
+    /// ## array
+    /// The vector $x$ to be normalized.
     ///
     /// # Output
     /// The array $x$ normalized by the $p$-norm $\|x\|_p$.
+    ///
+    /// # Remarks
+    /// This function defines a norm only when `p >= 1.0` or `Length(array)` is
+    /// either 0 or 1. In the more general case, this function fails the
+    /// triangle inequality.
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.PNorm
@@ -669,7 +696,7 @@ namespace Microsoft.Quantum.Math {
         if norm == 0.0 {
             return array;
         } else {
-            mutable output = new Double[nElements];
+            mutable output = [0.0, size=nElements];
 
             for idx in 0 .. nElements - 1 {
                 set output w/= idx <- array[idx] / norm;
@@ -724,15 +751,15 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Description
     /// Returns the factorial as `Double`, given an input of $n$ as a `Double`.
-    /// The domain of inputs for this function is `AbsD(n) < 170.0`.
+    /// The domain of inputs for this function is `n < 170`.
     ///
     /// # Remarks
-    /// This function uses the Ramanujan approxomation with a relative error
-    /// to the order of $1 / n^5$.
+    /// For $n \ge 10$, this function uses the Ramanujan approximation with a
+    /// relative error to the order of $1 / n^5$.
     ///
     /// # Input
     /// ## n
-    /// The number to take the approximate factorial of.
+    /// The number to take the approximate factorial of. Must not be negative.
     ///
     /// # Output
     /// The approximate factorial of `n`.
@@ -743,6 +770,11 @@ namespace Microsoft.Quantum.Math {
     function ApproximateFactorial(n : Int) : Double {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
         Fact(n < 170, "The largest approximate factorial that be stored as an Double is 169!. Use FactorialL.");
+
+        // For small enough n, use the exact factorial instead.
+        if n < 10 {
+            return IntAsDouble(FactorialI(n));
+        }
 
         let absN = IntAsDouble(n);
 

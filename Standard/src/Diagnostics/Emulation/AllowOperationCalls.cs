@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Quantum.Diagnostics.Emulation;
 using Microsoft.Quantum.Simulation.Common;
@@ -24,14 +25,18 @@ namespace Microsoft.Quantum.Diagnostics
         {
             private SimulatorBase? Simulator;
             
-            private static Dictionary<(Type, Type), Stack<IDisposable>> Handlers =
-                new Dictionary<(Type, Type), Stack<IDisposable>>();
+            // NB: This is static rather than an instance field, as the
+            //     simulation runtime does not guarantee that exactly one
+            //     operation object will be constructed for each simulator.
+            private static ConcurrentDictionary<IOperationFactory, Stack<IDisposable>> Handlers =
+                new ConcurrentDictionary<IOperationFactory, Stack<IDisposable>>();
 
-            private static readonly (Type, Type) Key = (typeof(__TInput__), typeof(__TOutput__));
+            private readonly IOperationFactory Key;
 
             public Native(IOperationFactory m) : base(m)
             {
                 Simulator = m as SimulatorBase;
+                Key = m;
             }
 
             public override Func<(long, ICallable, string), QVoid> __Body__ => _args =>
@@ -50,6 +55,15 @@ namespace Microsoft.Quantum.Diagnostics
                 bool IsSelf(ICallable callable) =>
                     callable.FullName == "Microsoft.Quantum.Diagnostics.AllowAtMostNCallsCA";
 
+                // Partial ordering on two variants; returns true, if `lhs` is included in `rhs`.
+                // For example, Body <= Body, and Body <= Adjoint, but Controlled is not less than or equal Adjoint.
+                bool LessThanOrEqual(OperationFunctor lhs, OperationFunctor rhs) => lhs switch {
+                        OperationFunctor.ControlledAdjoint => rhs == OperationFunctor.ControlledAdjoint,
+                        OperationFunctor.Controlled => rhs == OperationFunctor.ControlledAdjoint || rhs == OperationFunctor.Controlled,
+                        OperationFunctor.Adjoint => rhs == OperationFunctor.ControlledAdjoint || rhs == OperationFunctor.Adjoint,
+                        _ => true // OperationFunctor.Body
+                };
+
                 // Record whether or not the condition checked by this allow
                 // has failed, so that we can property unwind in the endOperation
                 // handler below.
@@ -60,7 +74,11 @@ namespace Microsoft.Quantum.Diagnostics
                     {
                         if (IsSelf(callable)) return;
                         callStack = callStack.Push(callable.FullName);
-                        if (callable.FullName == op.FullName)
+                        // `callable` is callable we just entered on the call stack, `op` is the callable
+                        // that we are monitoring with AllowAtMostNCallsCA.  We only increment the counter,
+                        // if both callables have the same fully qualified name and if the variant of `op`
+                        // is less restrictive than the one of `callable`.
+                        if (callable.FullName == op.FullName && LessThanOrEqual(op.Variant, callable.Variant))
                         {
                             callSites = callSites.Add(callStack);
                             if (callSites.Count > nTimes)

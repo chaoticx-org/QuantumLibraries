@@ -1,13 +1,21 @@
-# Microsoft Quantum Development Kit Libraries #
+## DEPRECATION NOTICE
 
-Welcome to the Microsoft Quantum Development Kit!
+**This repository is deprecated.** 
+
+For the Modern QDK repository, please visit [Microsoft/qsharp](http://github.com/microsoft/qsharp).
+
+You can also try out the Modern QDK in VS Code for Web at [vscode.dev/quantum](https://vscode.dev/quantum).
+
+For more information about the Modern QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
+
+## Classic QDK ##
 
 This repository contains open-source libraries for the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum):
 
 - **[Docs/](./Docs)**: Additional documentation for developing on the libraries. Please see [QDK online documentation](https://docs.microsoft.com/azure/quantum/) for online documentation.
 - **[Standard/](./Standard)**: Q# sources used to implement [the Q# standard libraries](https://docs.microsoft.com/azure/quantum/user-guide/libraries/standard).
 - **[Chemistry/](./Chemistry)**: Q# and C# sources used to implement a library for [quantum chemistry](https://docs.microsoft.com/azure/quantum/user-guide/libraries/chemistry) and Hamiltonian simulation.
-- **[Numerics/](./Numerics)**: Q# sources used to implement the [quantum numerics library](https://docs.microsoft.com/azure/quantum/user-guide/libraries/numerics).
+- **[Numerics/](./Numerics)**: Q# sources used to implement the [quantum numerics library](https://docs.microsoft.com/azure/quantum/user-guide/libraries/numerics/numerics).
 - **[LICENSE](./LICENSE.txt)**: Terms of use and license details for the Quantum Development Kit libraries.
 
 ## New to Quantum? ##
